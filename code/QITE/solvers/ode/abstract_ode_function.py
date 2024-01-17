@@ -18,7 +18,7 @@ from collections.abc import Mapping, Iterable
 
 from qiskit.circuit import Parameter
 
-from ..var_qte_linear_solver import VarQTELinearSolver
+from QITE.solvers.var_qte_linear_solver import VarQTELinearSolver
 
 
 class AbstractOdeFunction(ABC):

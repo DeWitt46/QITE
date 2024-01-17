@@ -22,7 +22,7 @@ from qiskit.circuit import Parameter
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from ..variational_principles import VariationalPrinciple
+from QITE.variational_principles.variational_principle import VariationalPrinciple
 
 
 class VarQTELinearSolver:
@@ -64,7 +64,9 @@ class VarQTELinearSolver:
         self.lse_solver = lse_solver
         self._imag_part_tol = imag_part_tol
 
-        if self._time_param is not None and not isinstance(self._hamiltonian, SparsePauliOp):
+        if self._time_param is not None and not isinstance(
+            self._hamiltonian, SparsePauliOp
+        ):
             raise TypeError(
                 f"A time parameter {t_param} has been specified, so a time-dependent "
                 f"hamiltonian is expected. The operator provided is of type {type(self._hamiltonian)}, "
@@ -78,7 +80,9 @@ class VarQTELinearSolver:
         return self._lse_solver
 
     @lse_solver.setter
-    def lse_solver(self, lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None) -> None:
+    def lse_solver(
+        self, lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None
+    ) -> None:
         """Sets an LSE solver. Uses a ``np.linalg.lstsq`` callable if ``None`` provided."""
         if lse_solver is None:
             lse_solver = lambda a, b: np.linalg.lstsq(a, b, rcond=1e-2)[0]
@@ -86,9 +90,7 @@ class VarQTELinearSolver:
         self._lse_solver = lse_solver
 
     def solve_lse(
-        self,
-        param_dict: Mapping[Parameter, float],
-        time_value: float | None = None,
+        self, param_dict: Mapping[Parameter, float], time_value: float | None = None,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Solve the system of linear equations underlying McLachlan's variational principle for the
@@ -107,7 +109,9 @@ class VarQTELinearSolver:
 
         """
         param_values = list(param_dict.values())
-        metric_tensor_lse_lhs = self._var_principle.metric_tensor(self._ansatz, param_values)
+        metric_tensor_lse_lhs = self._var_principle.metric_tensor(
+            self._ansatz, param_values
+        )
         hamiltonian = self._hamiltonian
 
         if self._time_param is not None:

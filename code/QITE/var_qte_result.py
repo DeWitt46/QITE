@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 
-from ..time_evolution_result import TimeEvolutionResult
+from time_evolution_result import TimeEvolutionResult
 
 from qiskit.algorithms.list_or_dict import ListOrDict
 

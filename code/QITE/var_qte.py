@@ -27,16 +27,14 @@ from qiskit.primitives import BaseEstimator
 from qiskit.algorithms.observables_evaluator import estimate_observables
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .solvers.ode.forward_euler_solver import ForwardEulerSolver
-from .solvers.ode.ode_function_factory import OdeFunctionFactory
-from .solvers.ode.var_qte_ode_solver import VarQTEOdeSolver
-from .solvers.var_qte_linear_solver import VarQTELinearSolver
+from QITE.solvers.ode.forward_euler_solver import ForwardEulerSolver
+from QITE.solvers.ode.ode_function_factory import OdeFunctionFactory
+from QITE.solvers.ode.var_qte_ode_solver import VarQTEOdeSolver
+from QITE.solvers.var_qte_linear_solver import VarQTELinearSolver
 
-from .variational_principles.variational_principle import VariationalPrinciple
-from .var_qte_result import VarQTEResult
-
-from ..time_evolution_problem import TimeEvolutionProblem
-
+from QITE.variational_principles.variational_principle import VariationalPrinciple
+from QITE.var_qte_result import VarQTEResult
+from time_evolution_problem import TimeEvolutionProblem
 
 
 class VarQTE(ABC):
@@ -147,7 +145,8 @@ class VarQTE(ABC):
         # unwrap PauliSumOp (in the future this will be deprecated)
         if isinstance(evolution_problem.hamiltonian, PauliSumOp):
             hamiltonian = (
-                evolution_problem.hamiltonian.primitive * evolution_problem.hamiltonian.coeff
+                evolution_problem.hamiltonian.primitive
+                * evolution_problem.hamiltonian.coeff
             )
         else:
             hamiltonian = evolution_problem.hamiltonian
@@ -168,9 +167,7 @@ class VarQTE(ABC):
                     dict(zip(init_state_param_dict.keys(), values))
                 )
                 observable = estimate_observables(
-                    self.estimator,
-                    evol_state,
-                    evolution_problem.aux_operators,
+                    self.estimator, evol_state, evolution_problem.aux_operators,
                 )
                 observables.append(observable)
 
@@ -223,12 +220,19 @@ class VarQTE(ABC):
         )
 
         ode_solver = VarQTEOdeSolver(
-            init_state_parameter_values, ode_function, self.ode_solver, self.num_timesteps
+            init_state_parameter_values,
+            ode_function,
+            self.ode_solver,
+            self.num_timesteps,
         )
         final_param_values, param_values, time_points = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, final_param_values))
 
-        return self.ansatz.assign_parameters(param_dict_from_ode), param_values, time_points
+        return (
+            self.ansatz.assign_parameters(param_dict_from_ode),
+            param_values,
+            time_points,
+        )
 
     @staticmethod
     def _create_init_state_param_dict(
@@ -278,9 +282,13 @@ class VarQTE(ABC):
                 )
             init_state_parameter_values = param_values
         else:
-            raise TypeError(f"Unsupported type of param_values provided: {type(param_values)}.")
+            raise TypeError(
+                f"Unsupported type of param_values provided: {type(param_values)}."
+            )
 
-        init_state_param_dict = dict(zip(init_state_parameters, init_state_parameter_values))
+        init_state_param_dict = dict(
+            zip(init_state_parameters, init_state_parameter_values)
+        )
         return init_state_param_dict
 
     def _validate_aux_ops(self, evolution_problem: TimeEvolutionProblem) -> None:

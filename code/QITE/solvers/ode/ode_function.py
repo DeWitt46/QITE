@@ -13,7 +13,7 @@
 """Class for generating ODE functions based on ODE gradients."""
 from collections.abc import Iterable
 
-from .abstract_ode_function import AbstractOdeFunction
+from QITE.solvers.ode.abstract_ode_function import AbstractOdeFunction
 
 
 class OdeFunction(AbstractOdeFunction):
@@ -34,8 +34,7 @@ class OdeFunction(AbstractOdeFunction):
         current_param_dict = dict(zip(self._param_dict.keys(), parameter_values))
 
         ode_grad_res, _, _ = self._varqte_linear_solver.solve_lse(
-            current_param_dict,
-            time,
+            current_param_dict, time,
         )
 
         return ode_grad_res

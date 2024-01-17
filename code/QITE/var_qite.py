@@ -23,15 +23,15 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.primitives import BaseEstimator
 
-from .solvers.ode.forward_euler_solver import ForwardEulerSolver
+from QITE.solvers.ode.forward_euler_solver import ForwardEulerSolver
 
-from .variational_principles.variational_principle import (
+from QITE.variational_principles.imaginary_mc_lachlan_principle import (
     ImaginaryVariationalPrinciple,
     ImaginaryMcLachlanPrinciple,
 )
-from .var_qte import VarQTE
+from QITE.var_qte import VarQTE
 
-from ..imaginary_time_evolver import ImaginaryTimeEvolver
+from imaginary_time_evolver import ImaginaryTimeEvolver
 
 
 class VarQITE(VarQTE, ImaginaryTimeEvolver):

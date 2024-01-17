@@ -19,10 +19,9 @@ from enum import Enum
 
 from qiskit.circuit import Parameter
 
-from .abstract_ode_function import AbstractOdeFunction
-from .ode_function import OdeFunction
-
-from ..var_qte_linear_solver import VarQTELinearSolver
+from QITE.solvers.ode.abstract_ode_function import AbstractOdeFunction
+from QITE.solvers.ode.ode_function import OdeFunction
+from QITE.solvers.var_qte_linear_solver import VarQTELinearSolver
 
 
 class OdeFunctionType(Enum):
@@ -35,7 +34,9 @@ class OdeFunctionType(Enum):
 class OdeFunctionFactory(ABC):
     """Factory for building ODE functions."""
 
-    def __init__(self, ode_function_type: OdeFunctionType = OdeFunctionType.STANDARD_ODE) -> None:
+    def __init__(
+        self, ode_function_type: OdeFunctionType = OdeFunctionType.STANDARD_ODE
+    ) -> None:
         """
         Args:
             ode_function_type: An Enum that defines a type of an ODE function to be built. If
