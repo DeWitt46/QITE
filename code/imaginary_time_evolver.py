@@ -14,8 +14,9 @@
 
 from abc import ABC, abstractmethod
 
-from .time_evolution_problem import TimeEvolutionProblem
-from .time_evolution_result import TimeEvolutionResult
+
+from time_evolution_problem import TimeEvolutionProblem
+from time_evolution_result import TimeEvolutionResult
 
 
 class ImaginaryTimeEvolver(ABC):
