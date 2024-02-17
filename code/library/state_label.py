@@ -199,7 +199,7 @@ def measure_label_to_circuit(qc, measure_label: str):
     new_qc.append(qc, list(np.arange(n_qbit)))
     for basis_pos in range(len(measure_label)):
         if measure_label[basis_pos] == "x":
-            new_qc.x(basis_pos)
+            new_qc.h(basis_pos)
         elif measure_label[basis_pos] == "z":
             pass
         else:

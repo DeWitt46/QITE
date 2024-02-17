@@ -7,6 +7,7 @@ Created on Tue Dec 14 12:04:17 2023
 
 @author: DeWitt
 """
+from qiskit.quantum_info import Statevector
 
 
 class QMETTS_results:
@@ -75,3 +76,18 @@ class QMETTS_results:
         for beta_index in range(len(self.multi_beta_qmetts_result)):
             beta_list.append(self.multi_beta_qmetts_result[beta_index]["beta"])
         return beta_list
+
+    def get_qite(self):
+        state_zero = [1.0]
+        for qbit in range(2**self.N - 1):
+            state_zero.append(0)
+        evolved_state_dict = {}
+        for key in self.preparation_result.keys():
+            taus = self.preparation_result[key]["time_list"]
+            evolved_state_dict[key] = []
+            for tau_index in range(len(taus)):
+                evolved_state = Statevector(state_zero).evolve(
+                    self.preparation_result[key]["circuit_list"][tau_index]
+                )
+                evolved_state_dict[key].append(evolved_state)
+        return taus, evolved_state_dict
