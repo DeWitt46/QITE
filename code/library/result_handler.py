@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 r"""
-Class to define the structure of the QMETTS algorithm instances results.
+Class to define the structure of the QMETTS and MHETS algorithms instances results.
 
 
 Created on Tue Dec 14 12:04:17 2023
@@ -61,9 +61,7 @@ class QMETTS_results:
         """
         th_averages = []
         for beta_index in range(len(self.multi_beta_qmetts_result)):
-            th_averages.append(
-                self.multi_beta_qmetts_result[beta_index]["th_average"]
-            )
+            th_averages.append(self.multi_beta_qmetts_result[beta_index]["th_average"])
         return th_averages
 
     def get_beta_list(self):
@@ -79,7 +77,7 @@ class QMETTS_results:
 
     def get_qite(self):
         state_zero = [1.0]
-        for qbit in range(2**self.N - 1):
+        for qbit in range(2 ** self.N - 1):
             state_zero.append(0)
         evolved_state_dict = {}
         for key in self.preparation_result.keys():
@@ -91,3 +89,25 @@ class QMETTS_results:
                 )
                 evolved_state_dict[key].append(evolved_state)
         return taus, evolved_state_dict
+
+
+# class MHETS_results:
+#     r"""Structure that handles the QMEETS instances results.
+
+#     The class takes the different lists and dictionary made by the QMETTS algorithm code which contain fragmented information and organizes all in such a way you can plot what you need.
+
+#     Args:
+#         N: Number of Qubits.
+#         gy: :math:`\gamma` of the LMG Hamiltonian.
+#         B: Magnetic field intensity.
+#         multi_beta_qmetts_result: List of results made by the function qmetts of the QMETTS_instance class.
+#         preparation_result: Dictionary which contains the evolved basis statevectors.
+#         preparation_exp_value: Dictionary which contains the expectation values of the observable on the evolved basis statevectors.
+#     """
+
+#     data = {"prova1": 3}
+#     path = "./MHETS_data/"
+#     file_name = "prova.pickle"
+#     with open(path + file_name, "wb") as f:
+#         # Pickle the preparation_result dictionary using the highest protocol available.
+#         pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)

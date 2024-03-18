@@ -13,6 +13,7 @@ Created on Tue Dec 12 16:54:13 2023
 
 @author: DeWitt
 """
+import pickle
 import numpy as np
 import copy
 
@@ -140,6 +141,12 @@ class QMETTS_instance:
                 ),
                 num_timesteps=num_timesteps,
             )
+        self.file_name = (
+            "preparation_result_{}at_gy{}_B{}_reps{}".format(
+                self.N, self.gy, self.B, self.ansatz.num_reps
+            ).replace(".", "")
+            + ".pickle"
+        )
 
     def get_basis_list(self):
         r"""Gets the basis list you can have when measuring the product operators provided.
@@ -224,8 +231,7 @@ class QMETTS_instance:
         temporary_qite = VarQITE(
             self.ansatz.build(),
             lb.state_to_par(
-                label=initial_state,
-                num_params=self.ansatz.get_num_parameters(),
+                label=initial_state, num_params=self.ansatz.get_num_parameters(),
             ),
             num_timesteps=self.num_timesteps,
         )
@@ -249,7 +255,7 @@ class QMETTS_instance:
         }
         return qmetts_result
 
-    def compute_evo_on_basis(self, tau, basis_list):
+    def compute_evo_on_basis(self):
         r"""Computes the evolution of all the statevectors provided of imaginary time tau.
 
         Args:
@@ -260,13 +266,15 @@ class QMETTS_instance:
             Dictionary of evolved statevector results, with basis statevectors labels as keys.
         """
         preparation_result = {}
-        for basis_state in basis_list:
+        for basis_state in self.basis_list:
             print("evolving {} basis state".format(basis_state))
             preparation_result[basis_state] = self.evolving(
-                initial_state=basis_state, tau=tau
+                initial_state=basis_state, tau=self.beta / 2
             )
             print("done")
-        return preparation_result
+        with open(self.file_name, "wb") as f:
+            # Pickle the preparation_result dictionary using the highest protocol available.
+            pickle.dump(preparation_result, f, pickle.HIGHEST_PROTOCOL)
 
     def compute_exp_on_basis(self, op, preparation_result):
         r"""Computes the expectation value of the observable op on the evolved statevectors.
@@ -279,7 +287,7 @@ class QMETTS_instance:
             Dictionary of the expectation values with basis statevectors labels as keys.
         """
         preparation_exp_values = {}
-        for basis_state in preparation_result.keys():
+        for basis_state in self.basis_list:
             preparation_exp_values[basis_state] = lb.exp_value(
                 circuit=preparation_result[basis_state]["circuit_list"][-1],
                 observable=op,
@@ -287,12 +295,7 @@ class QMETTS_instance:
         return preparation_exp_values
 
     def qmetts(
-        self,
-        preparation_result,
-        preparation_exp_values,
-        initial_state,
-        beta,
-        shots,
+        self, preparation_result, preparation_exp_values, initial_state, beta, shots,
     ):
         r"""Performs the actual QMETTS algorithm.
 
@@ -315,9 +318,7 @@ class QMETTS_instance:
         for shot_i in range(shots):
             state_list.append(
                 lb.choose_state(
-                    circuit=preparation_result[state_list[-1]]["circuit_list"][
-                        -1
-                    ],
+                    circuit=preparation_result[state_list[-1]]["circuit_list"][-1],
                     basis_measure_list=self.basis_measure_list,
                 )
             )
@@ -348,10 +349,14 @@ class QMETTS_instance:
         Returns:
             Results of the QMETTS algorithm for all the betas, as QMETTS_result class.
         """
-        tau = self.beta / 2
-        preparation_result = self.compute_evo_on_basis(
-            tau=tau, basis_list=self.basis_list
-        )
+        # tau = self.beta / 2
+        print("Data reading started")
+        with open(self.file_name, "rb") as f:
+            preparation_result = pickle.load(f)
+        print("Data reading finished")
+        # preparation_result = self.compute_evo_on_basis(
+        #     tau=tau, basis_list=self.basis_list
+        # )
         preparation_exp_values = {}
         for basis_state in self.basis_list:
             preparation_exp_values[basis_state] = []

@@ -65,6 +65,10 @@ class two_local:
         if entanglement == "linear":
             for qubit in range(0, qc.num_qubits - 1):
                 qc.cx(qubit, qubit + 1)
+        elif entanglement == "all":
+            for control_qubit in range(0, qc.num_qubits - 1):
+                for control_target_distance in range(1, qc.num_qubits - control_qubit):
+                    qc.cx(control_qubit, control_qubit + control_target_distance)
 
     def add_rotation_layer(self, qc, rotation_blocks, par):
         for i in range(0, qc.num_qubits):

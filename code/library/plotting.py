@@ -8,7 +8,7 @@ Created on Tue Dec 28 09:34:12 2023
 
 @author: DeWitt
 """
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Statevector, state_fidelity
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -41,7 +41,6 @@ def plot_thermal_average(
         num_th_averages.append(
             LMG_hamiltonian.thermal_average(H, op=H.get_matrix(), beta=beta)
         )
-
     plt.rcParams["figure.figsize"] = [7.50, 5.50]
     plt.rcParams["figure.autolayout"] = True
 
@@ -58,10 +57,7 @@ def plot_thermal_average(
     )
     plt.plot(betas, num_th_averages, color="blue", label="numerical average")
     plt.scatter(
-        np.array(beta_list),
-        thermal_averages,
-        color="red",
-        label="QMETTS average",
+        np.array(beta_list), thermal_averages, color="red", label="QMETTS average",
     )
 
     plt.ylabel("Thermal averages")
@@ -95,9 +91,7 @@ def plot_state_histogram(QMETTS_result, bins=None):
 
     gylabel = "$\gamma$ = {gy:.1f}, B = {B:.1f}, 1/T = {beta:.2f}"
 
-    plt.title(
-        "Histogram of the Markov chain for N = {N:.0f} spins".format(N=N)
-    )
+    plt.title("Histogram of the Markov chain for N = {N:.0f} spins".format(N=N))
 
     plt.hist(
         state_list,
@@ -205,9 +199,7 @@ def plot_qite(QMETTS_result, state_label_list=None):
     gylabel = "$\gamma$ = {gy:.1f}, B = {B:.1f}"
 
     plt.title(
-        "QITE and numerical ground state overlap for N = {N:.0f} spins".format(
-            N=N
-        )
+        "QITE and numerical ground state overlap for N = {N:.0f} spins".format(N=N)
     )
 
     plt.plot(
@@ -224,9 +216,7 @@ def plot_qite(QMETTS_result, state_label_list=None):
         for tau_index in range(len(taus)):
             overlap.append(
                 np.absolute(
-                    evolved_state_dict[state_label][tau_index].inner(
-                        exact_ground_state
-                    )
+                    evolved_state_dict[state_label][tau_index].inner(exact_ground_state)
                 )
             )
         plt.plot(
@@ -244,6 +234,110 @@ def plot_qite(QMETTS_result, state_label_list=None):
     handles, labels = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
     plt.legend(by_label.values(), by_label.keys(), loc="upper left")
+
+    plt.grid()
+    plt.show()
+
+
+def plot_fidelity(beta_list, rho_s_list, H, backend=None):
+    N = H.N
+    gy = H.gy
+    B = H.B
+    plt.rcParams["figure.figsize"] = [7.50, 5.50]
+    plt.rcParams["figure.autolayout"] = True
+
+    gylabel = "$\gamma$ = {gy:.1f}, B = {B:.1f} - MHETS on {backend} backend"
+
+    plt.title(
+        "Fidelity of MHETS and numerical thermal state for N = {N:.0f} spins".format(
+            N=N
+        )
+    )
+    plt.ylabel("Fidelity")
+    plt.xlabel("beta")
+
+    fidelity = []
+    for index in range(len(beta_list)):
+        fidelity.append(
+            state_fidelity(rho_s_list[index], H.get_thermal_state(beta_list[index]))
+        )
+    plt.plot(beta_list, np.ones(len(beta_list)), color="black", ls="dotted")
+    if backend is None:
+        plt.scatter(
+            beta_list,
+            fidelity,
+            color="red",
+            ls="dotted",
+            label=gylabel.format(gy=gy, B=B),
+        )
+    else:
+        plt.scatter(
+            beta_list,
+            fidelity,
+            color="red",
+            ls="dotted",
+            label=gylabel.format(gy=gy, B=B, backend=backend),
+        )
+    # Line of codes to avoid repeating labels in legend
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys())
+
+    plt.grid()
+    plt.show()
+
+
+def plot_MHETS_thermal_average(
+    beta_list, rho_s_list, H, beta_start=0.1, beta_final=6.0, num_beta=150, backend=None
+):
+    N = H.N
+    gy = H.gy
+    B = H.B
+
+    betas = np.linspace(beta_start, beta_final, num_beta)
+    thermal_averages = []
+    for rho_s in rho_s_list:
+        thermal_averages.append(np.trace(rho_s @ H.get_matrix()))
+    ground_state_energy = []
+    num_th_averages = []
+    for beta in betas:
+        ground_state_energy.append(H.get_ground_state()[0])
+        num_th_averages.append(
+            LMG_hamiltonian.thermal_average(H, op=H.get_matrix(), beta=beta)
+        )
+    plt.rcParams["figure.figsize"] = [7.50, 5.50]
+    plt.rcParams["figure.autolayout"] = True
+
+    gylabel = "$\gamma$ = {gy:.1f}, B = {B:.1f} - ground state energy"
+
+    plt.title("Energy thermal averages for N = {N:.0f} spins".format(N=N))
+
+    plt.plot(
+        betas,
+        ground_state_energy,
+        color="black",
+        ls="dotted",
+        label=gylabel.format(gy=gy, B=B),
+    )
+    plt.plot(betas, num_th_averages, color="blue", label="numerical average")
+    if backend is None:
+        plt.scatter(
+            np.array(beta_list), thermal_averages, color="red", label="MHETS average",
+        )
+    else:
+        plt.scatter(
+            np.array(beta_list),
+            thermal_averages,
+            color="red",
+            label="MHETS average on {} backend".format(backend),
+        )
+    plt.ylabel("Thermal averages")
+    plt.xlabel("beta")
+
+    # Line of codes to avoid repeating labels in legend
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys())
 
     plt.grid()
     plt.show()

@@ -20,9 +20,7 @@ class LMG_hamiltonian:
         self.N = N
         self.gy = gy
         self.B = B
-        self.pauli_list, self.coeff_list = self.op_list(
-            N=self.N, gy=self.gy, B=self.B
-        )
+        self.pauli_list, self.coeff_list = self.op_list(N=self.N, gy=self.gy, B=self.B)
         self.pauli = SparsePauliOp(self.pauli_list, self.coeff_list)
 
     def get_pauli(self):
@@ -102,5 +100,23 @@ class LMG_hamiltonian:
         return Z, rho
 
     def thermal_average(self, op, beta):
-        average = np.trace(np.matmul(op, self.get_thermal_state(beta)))
+        average = np.trace(op @ self.get_thermal_state(beta))
         return average
+
+    def cost_function(self, beta):
+        entropy = 0.0
+        eigenvalues, eigenstates = self.diagonalize(self.get_thermal_state(beta))
+        for eigenvalue in eigenvalues:
+            if eigenvalue != 0.0:
+                entropy -= eigenvalue * np.log(eigenvalue)
+        energy = self.thermal_average(self.get_matrix(), beta)
+        return np.real(beta * energy - entropy)
+
+    def get_sqrt(self, op):  # Not working
+        eigenvalues, eigenstates = self.diagonalize(op)
+        op_sqrt = np.zeros(op.shape, dtype=np.complex128)
+        for index in range(len(eigenvalues)):
+            op_sqrt += np.sqrt(eigenvalues[index]) * (
+                eigenstates[index] @ np.matrix.getH(eigenstates[index])
+            )
+        return op_sqrt
