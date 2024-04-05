@@ -25,9 +25,7 @@ def setup_ansatz(N, optimization_options):
         ancilla_ansatz = two_local(
             num_qubits=N,
             rotation_blocks=optimization_options["ancilla_ansatz_rotation_blocks"],
-            entanglement_blocks=optimization_options[
-                "ancilla_ansatz_entanglement_blocks"
-            ],
+            entanglement_blocks=optimization_options["ancilla_ansatz_entanglement_blocks"],
             entanglement=optimization_options["ancilla_ansatz_entanglement"],
             num_reps=optimization_options["ancilla_num_reps"],
         )
@@ -35,9 +33,7 @@ def setup_ansatz(N, optimization_options):
         system_ansatz = two_local(
             num_qubits=N,
             rotation_blocks=optimization_options["system_ansatz_rotation_blocks"],
-            entanglement_blocks=optimization_options[
-                "system_ansatz_entanglement_blocks"
-            ],
+            entanglement_blocks=optimization_options["system_ansatz_entanglement_blocks"],
             entanglement=optimization_options["system_ansatz_entanglement"],
             num_reps=optimization_options["system_num_reps"],
             par_name="y",
@@ -48,6 +44,8 @@ def setup_ansatz(N, optimization_options):
 def setup_backend(flag="statevector", model_tag=None):
     if flag == "statevector":
         backend = None
+    elif flag == "qasm":
+        backend = AerSimulator(method="statevector")
     elif flag == "noise":
         # Make a noise model
         fake_backend = model_tag
@@ -59,9 +57,7 @@ def setup_backend(flag="statevector", model_tag=None):
     return backend
 
 
-def setup_initial_parameter_list(
-    H, flag="statevector", num_beta_points=4, path="./MHETS_data/"
-):
+def setup_initial_parameter_list(H, flag="statevector", num_beta_points=4, path="./MHETS_data/"):
     if flag == "hardware":
         # Takes optimized parameters from statevector simulation
         file_name = setup_file_name(H, flag="statevector")
@@ -78,21 +74,27 @@ def setup_betas(old_betas, betas):
     for beta in betas:
         try:
             index = new_betas.index(beta)
-        except:
+        except ValueError:
             new_betas.append(beta)
         else:
             if index < (len(new_betas) - 1):
-                new_betas.append((beta + new_betas[index + 1]) / 2.0)
+                number_to_add = (beta + new_betas[index + 1]) / 2.0
+                if number_to_add not in new_betas:
+                    new_betas.append(number_to_add)
             else:
-                new_betas.append(beta + (beta - new_betas[index - 1]) / 2.0)
+                number_to_add = beta + (beta - new_betas[index - 1]) / 2.0
+                if number_to_add not in new_betas:
+                    new_betas.append(number_to_add)
         new_betas.sort()
     return new_betas
 
 
-def setup_file_name(H, flag="statevector"):
+def setup_file_name(H, flag="statevector", shots=1024):
     if flag == "statevector":
+        file_name = ("MHETS_{}at_gy{}_B{}".format(H.N, H.gy, H.B).replace(".", "")) + ".pickle"
+    elif flag == "qasm":
         file_name = (
-            "MHETS_{}at_gy{}_B{}".format(H.N, H.gy, H.B).replace(".", "")
+            "MHETS_{}at_gy{}_B{}_{}shots".format(H.N, H.gy, H.B, shots).replace(".", "")
         ) + ".pickle"
     elif flag == "noise":
         file_name = (
@@ -103,3 +105,12 @@ def setup_file_name(H, flag="statevector"):
             "MHETS_{}at_gy{}_B{}_hardware".format(H.N, H.gy, H.B).replace(".", "")
         ) + ".pickle"
     return file_name
+
+
+def setup_offline_multi_data(path, file_names: list):
+    multi_data = []
+    for file_name in file_names:
+        with open(path + file_name, "rb") as f:
+            multi_data.append(pickle.load(f))
+
+    return multi_data

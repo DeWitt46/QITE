@@ -22,27 +22,36 @@ def sort_result(total_result):
 
 
 def run(
-    instance, beta, n_starting_point=10, optimizer="COBYLA", maxiter=1000,
+    instance, beta, n_starting_point=10, optimizer="COBYLA", maxiter=1000, tol=1e-6, shots=1024
 ):
     starting_point_list = [instance.initial_parameter_list]
     for i in range(n_starting_point - 1):
         starting_point_list.append(
             np.random.rand(len(instance.initial_parameter_list)) * 2 * np.pi - np.pi
         )  # random array of parameters in [-pi, pi]
-    print(starting_point_list)
+    print("Run for beta =", beta)
     total_result = {"Starting point": starting_point_list}
     result = instance.optimize(
         beta,
         initial_parameter_list=starting_point_list[0],
         optimizer=optimizer,
         maxiter=maxiter,
+        tol=tol,
+        shots=shots,
     )
     for key in result.keys():
         total_result[key] = [result[key]]
     print("Initial starting point done")
 
     for parameter_list in starting_point_list[1:]:
-        result = instance.optimize(beta, optimizer=optimizer, maxiter=maxiter)
+        result = instance.optimize(
+            beta,
+            initial_parameter_list=parameter_list,
+            optimizer=optimizer,
+            maxiter=maxiter,
+            tol=tol,
+            shots=shots,
+        )
         for key in result.keys():
             total_result[key].append(result[key])
         print("Next starting point done")

@@ -104,3 +104,8 @@ class two_local:
             self.par[self.num_qubits * len(self.rotation_blocks) * (self.num_reps) :],
         )
         return self.circuit
+
+
+class PMA:
+    def __init__(self, first):
+        self.first = first

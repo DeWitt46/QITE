@@ -8,7 +8,7 @@ Created on Tue Dec 28 09:34:12 2023
 
 @author: DeWitt
 """
-from qiskit.quantum_info import Statevector, state_fidelity
+from qiskit.quantum_info import Statevector, state_fidelity, partial_trace
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -16,9 +16,7 @@ import matplotlib.pyplot as plt
 from library.operator_creation import LMG_hamiltonian
 
 
-def plot_thermal_average(
-    QMETTS_result, numerical_final_beta=7.0, numerical_beta_points=100
-):
+def plot_thermal_average(QMETTS_result, numerical_final_beta=7.0, numerical_beta_points=100):
     r"""Plots the energy thermal averages contained in QMETTS_result compared with the numerical ones and the ground state energy.
 
     Args:
@@ -38,9 +36,7 @@ def plot_thermal_average(
     num_th_averages = []
     for beta in betas:
         ground_state_energy.append(H.get_ground_state()[0])
-        num_th_averages.append(
-            LMG_hamiltonian.thermal_average(H, op=H.get_matrix(), beta=beta)
-        )
+        num_th_averages.append(LMG_hamiltonian.thermal_average(H, op=H.get_matrix(), beta=beta))
     plt.rcParams["figure.figsize"] = [7.50, 5.50]
     plt.rcParams["figure.autolayout"] = True
 
@@ -57,7 +53,10 @@ def plot_thermal_average(
     )
     plt.plot(betas, num_th_averages, color="blue", label="numerical average")
     plt.scatter(
-        np.array(beta_list), thermal_averages, color="red", label="QMETTS average",
+        np.array(beta_list),
+        thermal_averages,
+        color="red",
+        label="QMETTS average",
     )
 
     plt.ylabel("Thermal averages")
@@ -113,40 +112,40 @@ def plot_state_histogram(QMETTS_result, bins=None):
 
 
 def plot_qite(QMETTS_result, state_label_list=None):
-    color_list = {
-        "0--0": "blue",
-        "0--1": "red",
-        "0-+0": "green",
-        "0-+1": "orange",
-        "0+-0": "black",
-        "0+-1": "darkorange",
-        "0++0": "violet",
-        "0++1": "purple",
-        "1--0": "yellow",
-        "1--1": "gold",
-        "1-+0": "dodgerblue",
-        "1-+1": "powderblue",
-        "1+-0": "cyan",
-        "1+-1": "magenta",
-        "1++0": "crimson",
-        "1++1": "pink",
-        "-00-": "aquamarine",
-        "-00+": "lightseagreen",
-        "-01-": "seagreen",
-        "-01+": "lime",
-        "-10-": "slategray",
-        "-10+": "navy",
-        "-11-": "slateblue",
-        "-11+": "rebeccapurple",
-        "+00-": "plum",
-        "+00+": "peru",
-        "+01-": "firebrick",
-        "+01+": "gainsboro",
-        "+10-": "rosybrown",
-        "+10+": "gray",
-        "+11-": "tan",
-        "+11+": "greenyellow",
-    }
+    # color_list = {
+    #     "0--0": "blue",
+    #     "0--1": "red",
+    #     "0-+0": "green",
+    #     "0-+1": "orange",
+    #     "0+-0": "black",
+    #     "0+-1": "darkorange",
+    #     "0++0": "violet",
+    #     "0++1": "purple",
+    #     "1--0": "yellow",
+    #     "1--1": "gold",
+    #     "1-+0": "dodgerblue",
+    #     "1-+1": "powderblue",
+    #     "1+-0": "cyan",
+    #     "1+-1": "magenta",
+    #     "1++0": "crimson",
+    #     "1++1": "pink",
+    #     "-00-": "aquamarine",
+    #     "-00+": "lightseagreen",
+    #     "-01-": "seagreen",
+    #     "-01+": "lime",
+    #     "-10-": "slategray",
+    #     "-10+": "navy",
+    #     "-11-": "slateblue",
+    #     "-11+": "rebeccapurple",
+    #     "+00-": "plum",
+    #     "+00+": "peru",
+    #     "+01-": "firebrick",
+    #     "+01+": "gainsboro",
+    #     "+10-": "rosybrown",
+    #     "+10+": "gray",
+    #     "+11-": "tan",
+    #     "+11+": "greenyellow",
+    # }
 
     # color_list = {
     #     "0-0": "blue",
@@ -166,24 +165,24 @@ def plot_qite(QMETTS_result, state_label_list=None):
     #     "+1-": "pink",
     #     "+1+": "darkorange",
     # }
-    # color_list = {
-    #     "00": "blue",
-    #     "01": "red",
-    #     "10": "green",
-    #     "11": "orange",
-    #     "0-": "black",
-    #     "1-": "violet",
-    #     "0+": "purple",
-    #     "1+": "yellow",
-    #     "-0": "gold",
-    #     "-1": "dodgerblue",
-    #     "+0": "powderblue",
-    #     "+1": "cyan",
-    #     "--": "magenta",
-    #     "-+": "crimson",
-    #     "+-": "pink",
-    #     "++": "darkorange",
-    # }
+    color_list = {
+        #     "00": "blue",
+        #     "01": "red",
+        #     "10": "green",
+        #     "11": "orange",
+        #     "0-": "black",
+        #     "1-": "violet",
+        #     "0+": "purple",
+        #     "1+": "yellow",
+        #     "-0": "gold",
+        #     "-1": "dodgerblue",
+        #     "+0": "powderblue",
+        #     "+1": "cyan",
+        "--": "magenta",
+        "-+": "pink",
+        "+-": "crimson",
+        "++": "darkorange",
+    }
     taus, evolved_state_dict = QMETTS_result.get_qite()
 
     N = QMETTS_result.N
@@ -198,9 +197,7 @@ def plot_qite(QMETTS_result, state_label_list=None):
 
     gylabel = "$\gamma$ = {gy:.1f}, B = {B:.1f}"
 
-    plt.title(
-        "QITE and numerical ground state overlap for N = {N:.0f} spins".format(N=N)
-    )
+    plt.title("QITE and numerical ground state overlap for N = {N:.0f} spins".format(N=N))
 
     plt.plot(
         taus,
@@ -215,15 +212,14 @@ def plot_qite(QMETTS_result, state_label_list=None):
         overlap = []
         for tau_index in range(len(taus)):
             overlap.append(
-                np.absolute(
-                    evolved_state_dict[state_label][tau_index].inner(exact_ground_state)
-                )
+                np.absolute(evolved_state_dict[state_label][tau_index].inner(exact_ground_state))
             )
         plt.plot(
             taus,
             overlap,
             color=color_list[state_label],
             label="Initial state: {}".format(state_label),
+            lw=2.5,
         )
         print(state_label, evolved_state_dict[state_label][-1])
     print("exact_ground_state = ", exact_ground_state)
@@ -233,7 +229,7 @@ def plot_qite(QMETTS_result, state_label_list=None):
     # Line of codes to avoid repeating labels in legend
     handles, labels = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    plt.legend(by_label.values(), by_label.keys(), loc="upper left")
+    plt.legend(by_label.values(), by_label.keys(), loc="lower right")
 
     plt.grid()
     plt.show()
@@ -248,19 +244,13 @@ def plot_fidelity(beta_list, rho_s_list, H, backend=None):
 
     gylabel = "$\gamma$ = {gy:.1f}, B = {B:.1f} - MHETS on {backend} backend"
 
-    plt.title(
-        "Fidelity of MHETS and numerical thermal state for N = {N:.0f} spins".format(
-            N=N
-        )
-    )
+    plt.title("Fidelity of MHETS and numerical thermal state for N = {N:.0f} spins".format(N=N))
     plt.ylabel("Fidelity")
     plt.xlabel("beta")
 
     fidelity = []
     for index in range(len(beta_list)):
-        fidelity.append(
-            state_fidelity(rho_s_list[index], H.get_thermal_state(beta_list[index]))
-        )
+        fidelity.append(state_fidelity(rho_s_list[index], H.get_thermal_state(beta_list[index])))
     plt.plot(beta_list, np.ones(len(beta_list)), color="black", ls="dotted")
     if backend is None:
         plt.scatter(
@@ -302,9 +292,7 @@ def plot_MHETS_thermal_average(
     num_th_averages = []
     for beta in betas:
         ground_state_energy.append(H.get_ground_state()[0])
-        num_th_averages.append(
-            LMG_hamiltonian.thermal_average(H, op=H.get_matrix(), beta=beta)
-        )
+        num_th_averages.append(LMG_hamiltonian.thermal_average(H, op=H.get_matrix(), beta=beta))
     plt.rcParams["figure.figsize"] = [7.50, 5.50]
     plt.rcParams["figure.autolayout"] = True
 
@@ -322,7 +310,10 @@ def plot_MHETS_thermal_average(
     plt.plot(betas, num_th_averages, color="blue", label="numerical average")
     if backend is None:
         plt.scatter(
-            np.array(beta_list), thermal_averages, color="red", label="MHETS average",
+            np.array(beta_list),
+            thermal_averages,
+            color="red",
+            label="MHETS average",
         )
     else:
         plt.scatter(
@@ -341,3 +332,120 @@ def plot_MHETS_thermal_average(
 
     plt.grid()
     plt.show()
+
+
+def plot_MHETS_shots(multi_data, betas, H):
+    color_list = ["blue", "red", "green", "gold", "orange"]
+
+    fig, axs = plt.subplots(len(betas), sharex=True)
+    plt.rcParams["figure.figsize"] = [7.50, 5.50]
+    plt.rcParams["figure.autolayout"] = True
+
+    gylabel = "QASM with n_shots = {}"
+
+    fig.suptitle(
+        "Helmoltz energy optimization for N = {N:.0f}, $\gamma$ = {gy:.1f}, B = {B:.1f}".format(
+            N=H.N, gy=H.gy, B=H.B
+        )
+    )
+
+    for beta in betas:
+        maxiter_list = range(1, multi_data[0]["optimization_options"]["maxiter"] + 1)
+        axs[np.where(betas == beta)[0][0]].plot(
+            maxiter_list,
+            [H.cost_function(beta) / beta for _ in range(len(maxiter_list))],
+            color="black",
+            ls="dotted",
+            label="Numerical value for beta = {}".format(beta),
+        )
+
+        for index in range(len(multi_data)):
+            beta_index = multi_data[index]["betas"].index(beta)
+            axs[np.where(betas == beta)[0][0]].plot(
+                range(1, multi_data[index]["n_eval"][beta_index] + 1),
+                take_helm_energy(multi_data[index], beta, H),
+                color=color_list[index],
+                label=gylabel.format(multi_data[index]["optimization_options"]["shots"]),
+            )
+
+    for ax in axs.flat:
+        ax.set(xlabel="N evaluation", ylabel="Helmoltz energy")
+
+    # Hide x labels and tick labels for top plots and y ticks for right plots.
+    for ax in axs.flat:
+        ax.label_outer()
+        ax.legend()  # Show legend
+
+
+def plot_MHETS_shots_fidelity(multi_data, betas, H):
+    color_list = ["blue", "red", "green", "gold", "orange"]
+
+    fig, axs = plt.subplots(len(betas), sharex=True)
+    plt.rcParams["figure.figsize"] = [7.50, 5.50]
+    plt.rcParams["figure.autolayout"] = True
+
+    gylabel = "QASM with n_shots = {}"
+
+    fig.suptitle(
+        "QST fidelity during optimization for N = {N:.0f}, $\gamma$ = {gy:.1f}, B = {B:.1f}".format(
+            N=H.N, gy=H.gy, B=H.B
+        )
+    )
+
+    for beta in betas:
+        maxiter_list = range(1, multi_data[0]["optimization_options"]["maxiter"] + 1)
+        axs[np.where(betas == beta)[0][0]].plot(
+            maxiter_list,
+            [1.0 for _ in range(len(maxiter_list))],
+            color="black",
+            ls="dotted",
+            label="Max value - beta = {}".format(beta),
+        )
+
+        for index in range(len(multi_data)):
+            beta_index = multi_data[index]["betas"].index(beta)
+            axs[np.where(betas == beta)[0][0]].plot(
+                range(1, multi_data[index]["n_eval"][beta_index] + 1),
+                take_QST_fidelity(multi_data[index], beta, H),
+                color=color_list[index],
+                label=gylabel.format(multi_data[index]["optimization_options"]["shots"]),
+            )
+
+    for ax in axs.flat:
+        ax.set(xlabel="N evaluation", ylabel="QST Fidelity")
+
+    # Hide x labels and tick labels for top plots and y ticks for right plots.
+    for ax in axs.flat:
+        ax.label_outer()
+        ax.legend()  # Show legend
+
+
+def take_QST_fidelity(multi_beta_result, beta, H):
+    QST_fidelity_list = []
+
+    beta_index = multi_beta_result["betas"].index(beta)
+    for data in multi_beta_result["callback_data"][beta_index]:
+        QST_fidelity_list.append(data.analysis_results("state_fidelity").value)
+
+    return QST_fidelity_list
+
+
+def take_helm_energy(multi_beta_result, beta, H):
+    helm_energy_list = []
+
+    beta_index = multi_beta_result["betas"].index(beta)
+    for data in multi_beta_result["callback_data"][beta_index]:
+        rho = data.analysis_results("state").value
+        prob_ancilla = rho.probabilities(range(0, H.N))
+
+        entropy = 0.0
+        for index in range(len(prob_ancilla)):
+            if prob_ancilla[index] != 0.0:
+                entropy -= prob_ancilla[index] * np.log(prob_ancilla[index])
+        rho_S = partial_trace(rho, range(H.N))
+
+        system_exp_value = np.trace(rho_S @ H.get_matrix())
+
+        helm_energy_list.append(np.real(system_exp_value - (1.0 / beta) * entropy))
+
+    return helm_energy_list

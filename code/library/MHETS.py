@@ -17,6 +17,7 @@ from scipy.optimize import minimize
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import DensityMatrix, partial_trace
 from qiskit_experiments.library import StateTomography
+from qiskit_algorithms.optimizers import SPSA
 
 from library import montecarlo
 from library.operator_creation import LMG_hamiltonian
@@ -61,23 +62,20 @@ class MHETS_instance:
                 )
             )
         self.initial_parameter_list = initial_parameter_list
-        if self.initial_parameter_list == None:
+        if self.initial_parameter_list is None:
             self.initial_parameter_list = np.zeros(
                 self.ancilla_ansatz.get_num_parameters()
                 + self.system_ansatz.get_num_parameters()
             )
         elif len(self.initial_parameter_list) != (
-            self.ancilla_ansatz.get_num_parameters()
-            + self.system_ansatz.get_num_parameters()
+            self.ancilla_ansatz.get_num_parameters() + self.system_ansatz.get_num_parameters()
         ):
-            print(
-                "Warning!!! Initial parameter list number not correct. Changed to [0, ..., 0]"
-            )
+            print("Warning!!! Initial parameter list number not correct. Changed to [0, ..., 0]")
             self.initial_parameter_list = np.zeros(
                 self.ancilla_ansatz.get_num_parameters()
                 + self.system_ansatz.get_num_parameters()
             )
-        self.current_parameter_list = self.initial_parameter_list
+        self.current_parameter_list = self.initial_parameter_list.copy()
         self.flag = flag
         self.backend = backend
         self.optimization_options = optimization_options
@@ -108,8 +106,7 @@ class MHETS_instance:
     def update_parameters(self, parameter_list: list):
         self.current_parameter_list = parameter_list
         ancilla_parameters = [
-            parameter_list[i]
-            for i in range(0, self.ancilla_ansatz.get_num_parameters())
+            parameter_list[i] for i in range(0, self.ancilla_ansatz.get_num_parameters())
         ]
         system_parameters = [
             parameter_list[i]
@@ -122,31 +119,38 @@ class MHETS_instance:
         self.ancilla_ansatz.bind_parameters(ancilla_parameters)
         self.system_ansatz.bind_parameters(system_parameters)
 
-    def QST(self, circuit):
+    def QST(self, circuit, shots):
         if self.flag == "statevector":
             rho = DensityMatrix(circuit)
             return rho
+
+        elif self.flag == "qasm":
+            if self.backend is None:
+                print("You didn't indicate backend")
+            experiment = StateTomography(circuit)
+            data = experiment.run(self.backend, shots=shots).block_for_results()
+
+            return data
+
         elif self.flag == "noise":
             if self.backend is None:
                 print("You didn't indicate backend")
             experiment = StateTomography(circuit)
-            data = experiment.run(self.backend).block_for_results()
+            data = experiment.run(self.backend, shots=shots).block_for_results()
 
             return data
 
-    def cost_function(self, parameter_list: list, beta):
-        # print("updating parameter")
+    def cost_function(self, parameter_list: list, beta, shots):
         self.update_parameters(parameter_list)
 
-        start = time.time()
+        global callback_data
         total_qc = self.build_total_circuit()
         if self.backend is not None:
-            data = self.QST(total_qc)
+            data = self.QST(circuit=total_qc, shots=shots)
+            callback_data.append(data)
             rho = data.analysis_results("state").value
         else:
-            rho = self.QST(total_qc)
-        finish = time.time()
-        # print("Time rho building =", finish - start)
+            rho = self.QST(circuit=total_qc, shots=shots)
         prob_ancilla = rho.probabilities(range(0, self.N_ancilla))
 
         entropy = 0.0
@@ -164,29 +168,52 @@ class MHETS_instance:
         # if np.imag(system_exp_value) != 0.0:
         #     print("Warning!!! Exp_value Imag = ", np.imag(system_exp_value))
         # print("Current F =", np.real(beta * system_exp_value - entropy))
+        if self.flag == "statevector":
+            callback_data.append(
+                np.real(beta * system_exp_value - entropy)
+            )  # MemoryError for N=4, maxiter about 2-3000 If you want entire rho
         return np.real(beta * system_exp_value - entropy)
 
     def optimize(
-        self, beta, initial_parameter_list=None, optimizer="SLSQP", maxiter=1000,
+        self,
+        beta,
+        initial_parameter_list=None,
+        optimizer="SLSQP",
+        maxiter=1000,
+        tol=1e-1,
+        shots=1024,
     ):
+        global callback_data
+        callback_data = []
         total_start = time.time()
         if initial_parameter_list is None:
-            scipy_result = minimize(
-                self.cost_function,
-                self.initial_parameter_list,
-                args=(beta),
-                method=optimizer,
-                options={"maxiter": maxiter},
-            )
+            if optimizer == "SPSA":
+                spsa = SPSA(maxiter=maxiter)
+                scipy_result = spsa.minimize(self.cost_function, self.initial_parameter_list)
+            else:
+                scipy_result = minimize(
+                    self.cost_function,
+                    self.initial_parameter_list,
+                    args=(beta, shots),
+                    method=optimizer,
+                    options={"maxiter": maxiter},
+                    tol=tol,
+                )
         else:
-            scipy_result = minimize(
-                self.cost_function,
-                initial_parameter_list,
-                args=(beta),
-                method=optimizer,
-                options={"maxiter": maxiter},
-            )
+            if optimizer == "SPSA":
+                spsa = SPSA(maxiter=maxiter)
+                scipy_result = spsa.minimize(self.cost_function, initial_parameter_list)
+            else:
+                scipy_result = minimize(
+                    self.cost_function,
+                    initial_parameter_list,
+                    args=(beta, shots),
+                    method=optimizer,
+                    options={"maxiter": maxiter},
+                    tol=tol,
+                )
         print("Total time", time.time() - total_start)
+
         result = {
             "optimized_parameter_list": scipy_result.x,
             "Helmoltz energy": scipy_result.fun,
@@ -194,6 +221,7 @@ class MHETS_instance:
             "Message": scipy_result.message,
             "Time optimization": time.time() - total_start,
             "n_eval": scipy_result.nfev,
+            "callback_data": callback_data,
         }
         return result
 
@@ -201,11 +229,11 @@ class MHETS_instance:
         # INITIALIZE THE DICTIONARY RESULT
         result = self.optimize(
             beta=betas[0],
-            initial_parameter_list=self.optimization_options["initial_parameter_list"][
-                0
-            ],
+            initial_parameter_list=self.optimization_options["initial_parameter_list"][0],
             maxiter=self.optimization_options["maxiter"],
             optimizer=self.optimization_options["optimizer"],
+            tol=self.optimization_options["tol"],
+            shots=self.optimization_options["shots"],
         )
         multi_beta_result = {
             "betas": [betas[0]],
@@ -216,15 +244,108 @@ class MHETS_instance:
             multi_beta_result[key] = [result[key]]
         # CONTINUE FILLING IT
         for index in range(1, len(betas)):
+            print(
+                "Initial_parameter_list for beta = {}".format(betas[index]),
+                multi_beta_result["optimized_parameter_list"][index - 1],
+            )
             result = self.optimize(
                 beta=betas[index],
-                initial_parameter_list=self.optimization_options[
-                    "initial_parameter_list"
-                ][index],
+                # initial_parameter_list=self.optimization_options["initial_parameter_list"][
+                #     index
+                # ],
+                initial_parameter_list=multi_beta_result["optimized_parameter_list"][index - 1],
                 maxiter=self.optimization_options["maxiter"],
                 optimizer=self.optimization_options["optimizer"],
+                tol=self.optimization_options["tol"],
+                shots=self.optimization_options["shots"],
             )
             multi_beta_result["betas"].append(betas[index])
             for key in result.keys():
                 multi_beta_result[key].append(result[key])
         return multi_beta_result
+
+    def multi_beta_optimization_from_data(self, betas, old_data):
+        # INITIALIZE DICTIONARY RESULT
+        multi_beta_result = {
+            "optimization_options": self.optimization_options,
+            "backend": self.backend,
+        }
+        for key in old_data.keys():
+            if key != "optimization_options":
+                if key != "backend":
+                    multi_beta_result[key] = []
+        # FILLING DICTIONARY RESULT
+        for beta in betas:
+            if beta in old_data["betas"]:
+                beta_index = old_data["betas"].index(beta)
+                for key in old_data.keys():
+                    if key != "optimization_options":
+                        if key != "backend":
+                            multi_beta_result[key].append(old_data[key][beta_index])
+            else:
+                # TODO: check initial parameters when flag=hardware, not implemented
+                result = self.optimize(
+                    beta=beta,
+                    maxiter=self.optimization_options["maxiter"],
+                    optimizer=self.optimization_options["optimizer"],
+                    tol=self.optimization_options["tol"],
+                    shots=self.optimization_options["shots"],
+                )
+                multi_beta_result["betas"].append(beta)
+                for key in result.keys():
+                    multi_beta_result[key].append(result[key])
+        return multi_beta_result
+
+    def multi_beta_optimization_run(
+        self,
+        betas,
+        n_starting_point=10,
+    ):
+        # INITIALIZE THE DICTIONARY RESULT
+        minimized_result, total_result = montecarlo.run(
+            self,
+            beta=betas[0],
+            n_starting_point=n_starting_point,
+            optimizer=self.optimization_options["optimizer"],
+            maxiter=self.optimization_options["maxiter"],
+            tol=self.optimization_options["tol"],
+            shots=self.optimization_options["shots"],
+        )
+        multi_beta_result = {
+            "betas": [betas[0]],
+            "optimization_options": self.optimization_options,
+            "backend": self.backend,
+        }
+        multi_beta_runs = [
+            {
+                "betas": [betas[0]],
+                "optimization_options": self.optimization_options,
+                "backend": self.backend,
+            }
+            for _ in range(n_starting_point)
+        ]
+        for key in minimized_result.keys():
+            multi_beta_result[key] = [minimized_result[key]]
+        for key in total_result.keys():
+            for run_index in range(len(multi_beta_runs)):
+                multi_beta_runs[run_index][key] = [total_result[key][run_index]]
+        # CONTINUE FILLING IT
+        for index in range(1, len(betas)):
+            minimized_result, total_result = montecarlo.run(
+                self,
+                beta=betas[index],
+                n_starting_point=n_starting_point,
+                optimizer=self.optimization_options["optimizer"],
+                maxiter=self.optimization_options["maxiter"],
+                tol=self.optimization_options["tol"],
+                shots=self.optimization_options["shots"],
+            )
+            multi_beta_result["betas"].append(betas[index])
+            for key in minimized_result.keys():
+                multi_beta_result[key].append(minimized_result[key])
+            for run_index in range(len(multi_beta_runs)):
+                multi_beta_runs[run_index]["betas"].append(betas[index])
+            for key in total_result.keys():
+                for run_index in range(len(multi_beta_runs)):
+                    multi_beta_runs[run_index][key].append(total_result[key][run_index])
+        return multi_beta_result, multi_beta_runs
