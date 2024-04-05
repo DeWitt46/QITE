@@ -20,19 +20,26 @@ from library.operator_creation import LMG_hamiltonian
 from library.QMETTS import QMETTS_instance
 
 
-N = 4
-gy = 0.5
-B = 0.1
-final_beta = 3.0
+N = 2
+gy = 0.8
+B = 0.7
+final_beta = 10.0
 num_beta_points = 10
-shots = 5000
-initial_state = "+00+"
+shots = 50
+initial_state = "++"
 H = LMG_hamiltonian(N, gy, B)
-operators = ["zxxz", "xzzx"]
+operators = ["xx"]
 flag = "manual"
-ansatz = two_local(num_qubits=N, num_reps=3)
+ansatz = two_local(num_qubits=N, num_reps=1)
 qmetts_instance = QMETTS_instance(
-    H, operators, flag, final_beta, num_beta_points, shots, initial_state, ansatz,
+    H,
+    operators,
+    flag,
+    final_beta,
+    num_beta_points,
+    shots,
+    initial_state,
+    ansatz,
 )
 print(qmetts_instance.get_basis_list())
 print(qmetts_instance.get_basis_measure_list())
@@ -42,7 +49,7 @@ QMETTS_result = qmetts_instance.multi_beta_qmetts(
 )
 plotting.plot_thermal_average(QMETTS_result)
 plotting.plot_state_histogram(QMETTS_result)
-# plotting.plot_qite(QMETTS_result, qmetts_instance.get_basis_list())
+plotting.plot_qite(QMETTS_result, qmetts_instance.get_basis_list())
 
 
 # 1st  all

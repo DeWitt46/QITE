@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 r"""
-Script for collecting data about my thesis on thermal states generation and analysis of some TD properties for the LMG model.
+Script for collecting data about my thesis on thermal states generation and analysis of 
+some TD properties for the LMG model.
 
 
 
@@ -21,115 +22,108 @@ from library.operator_creation import LMG_hamiltonian
 from library.ansatz_creation import two_local
 
 
-for N in [2]:
+for N in [4]:
     for gy in [0.0]:
-        for B in [0.1]:
-            print("Simulation for N = {}, gy = {}, B = {}".format(N, gy, B))
-            # N = 3
-            # gy = 0.5
-            # B = 0.1
-            first_beta = 0.2
-            last_beta = 5.0
-            num_beta_points = 4
-            betas = np.linspace(first_beta, last_beta, num_beta_points)
-            maxiter = 110
-            optimizer = "COBYLA"
-            H = LMG_hamiltonian(N, gy, B)
-            ancilla_ansatz = two_local(num_qubits=N, num_reps=1, entanglement="linear")
-            system_ansatz = two_local(
-                num_qubits=N, num_reps=1, entanglement="linear", par_name="y"
-            )
+        for B in [0.2]:
+            for shots in [100]:
+                print("Simulation for N = {}, gy = {}, B = {}".format(N, gy, B))
+                # N = 3
+                # gy = 0.5
+                # B = 0.1
+                first_beta = 0.2
+                last_beta = 5.0
+                num_beta_points = 1
+                betas = np.linspace(first_beta, last_beta, num_beta_points)
+                maxiter = 30
+                optimizer = "COBYLA"
+                tol = 1.5e-1
+                # shots = 1000  # Ignore If flag == statevector
+                H = LMG_hamiltonian(N, gy, B)
+                ancilla_ansatz = two_local(num_qubits=N, num_reps=1, entanglement="linear")
+                system_ansatz = two_local(
+                    num_qubits=N, num_reps=2, entanglement="linear", par_name="y"
+                )
 
-            flag = "statevector"
-            model_tag = None
-            if flag == "noise":
-                model_tag = FakeManila()
-            elif flag == "hardware":
-                model_tag = "ibm_osaka"
-            backend = setup.setup_backend(flag=flag, model_tag=model_tag)
-            path = "./MHETS_data/"
-            file_name = setup.setup_file_name(H=H, flag=flag)
-            initial_parameter_list = setup.setup_initial_parameter_list(
-                H=H, flag=flag, num_beta_points=len(betas), path=path
-            )
+                flag = "qasm"
+                run_flag = (
+                    False  # True if you want some randomized starting point for minimization
+                )
+                n_starting_point = 10  # Ignore if run_flag is False
+                model_tag = None
 
-            optimization_options = {
-                "ancilla_ansatz": "two_local",
-                "ancilla_num_reps": ancilla_ansatz.get_num_reps(),
-                "ancilla_ansatz_entanglement": ancilla_ansatz.get_entanglement(),
-                "ancilla_ansatz_rotation_blocks": ancilla_ansatz.get_rotation_blocks(),
-                "ancilla_ansatz_entanglement_blocks": ancilla_ansatz.get_entanglement_blocks(),
-                "system_ansatz": "two_local",
-                "system_num_reps": system_ansatz.get_num_reps(),
-                "system_ansatz_entanglement": system_ansatz.get_entanglement(),
-                "system_ansatz_entanglement_blocks": system_ansatz.get_entanglement_blocks(),
-                "system_ansatz_rotation_blocks": system_ansatz.get_rotation_blocks(),
-                "maxiter": maxiter,
-                "optimizer": optimizer,
-                "initial_parameter_list": initial_parameter_list,
-                "flag": flag,
-            }
+                if flag == "noise":
+                    model_tag = FakeManila()
+                elif flag == "hardware":
+                    model_tag = "ibm_osaka"
+                backend = setup.setup_backend(flag=flag, model_tag=model_tag)
+                path = "./MHETS_data/"
+                file_name = setup.setup_file_name(H=H, flag=flag, shots=shots)
+                initial_parameter_list = setup.setup_initial_parameter_list(
+                    H=H, flag=flag, num_beta_points=len(betas), path=path
+                )
 
-            mhets = MHETS_instance(
-                H=H,
-                ancilla_ansatz=ancilla_ansatz,
-                system_ansatz=system_ansatz,
-                optimization_options=optimization_options,
-                flag=flag,
-                backend=backend,
-            )
-
-            try:
-                with open(path + file_name, "rb") as f:
-                    old_data = pickle.load(f)
-            except:
-                print("No file found. Optimize from scratch")
-                multi_beta_result = mhets.multi_beta_optimization_from_scratch(betas)
-            else:
-                print("File found. Append results")
-                new_betas = setup.setup_betas(old_betas=old_data["betas"], betas=betas)
-                print("old_betas", old_data["betas"])
-                print("betas_inserted", betas)
-                print("final_beta_list", new_betas)
-                # INITIALIZE DICTIONARY RESULT
-                multi_beta_result = {
-                    "optimization_options": mhets.optimization_options,
-                    "backend": mhets.backend,
+                optimization_options = {
+                    "ancilla_ansatz": "two_local",
+                    "ancilla_num_reps": ancilla_ansatz.get_num_reps(),
+                    "ancilla_ansatz_entanglement": ancilla_ansatz.get_entanglement(),
+                    "ancilla_ansatz_rotation_blocks": ancilla_ansatz.get_rotation_blocks(),
+                    "ancilla_ansatz_entanglement_blocks": ancilla_ansatz.get_entanglement_blocks(),
+                    "system_ansatz": "two_local",
+                    "system_num_reps": system_ansatz.get_num_reps(),
+                    "system_ansatz_entanglement": system_ansatz.get_entanglement(),
+                    "system_ansatz_entanglement_blocks": system_ansatz.get_entanglement_blocks(),
+                    "system_ansatz_rotation_blocks": system_ansatz.get_rotation_blocks(),
+                    "maxiter": maxiter,
+                    "optimizer": optimizer,
+                    "initial_parameter_list": initial_parameter_list,
+                    "flag": flag,
+                    "tol": tol,
+                    "shots": shots,
                 }
-                for key in old_data.keys():
-                    if key != "optimization_options":
-                        if key != "backend":
-                            multi_beta_result[key] = []
-                # FILLING DICTIONARY RESULT
-                for beta in new_betas:
-                    if beta in old_data["betas"]:
-                        print("beta beta check here, continue implementation")
+
+                mhets = MHETS_instance(
+                    H=H,
+                    ancilla_ansatz=ancilla_ansatz,
+                    system_ansatz=system_ansatz,
+                    optimization_options=optimization_options,
+                    flag=flag,
+                    backend=backend,
+                )
+
+                if run_flag is True:
+                    multi_beta_result, multi_beta_runs = mhets.multi_beta_optimization_run(
+                        betas=betas, n_starting_point=n_starting_point
+                    )
+                else:
+                    try:
+                        with open(path + file_name, "rb") as f:
+                            old_data = pickle.load(f)
+                    except FileNotFoundError:
+                        print("No file found. Optimize from scratch")
+                        multi_beta_result = mhets.multi_beta_optimization_from_scratch(betas)
                     else:
-                        # TODO: check initial parameters when flag=hardware, not implemented
-                        result = mhets.optimize(
-                            beta=beta,
-                            maxiter=mhets.optimization_options["maxiter"],
-                            optimizer=mhets.optimization_options["optimizer"],
+                        print("File found. Append results")
+                        new_betas = setup.setup_betas(old_betas=old_data["betas"], betas=betas)
+                        print("old_betas", old_data["betas"])
+                        print("betas_inserted", betas)
+                        print("final_beta_list", new_betas)
+                        multi_beta_result = mhets.multi_beta_optimization_from_data(
+                            betas=new_betas, old_data=old_data
                         )
-                        multi_beta_result["betas"].append(beta)
-                        for key in result.keys():
-                            multi_beta_result[key].append(result[key])
-            # WRITING DATA TO FILE
-            path = "./MHETS_data/"
-            file_name = setup.setup_file_name(H, flag)
-            with open(path + file_name, "wb") as f:
-                # Pickle the preparation_result dictionary using the highest protocol available.
-                pickle.dump(multi_beta_result, f, pickle.HIGHEST_PROTOCOL)
-# def fill():
-#     control if there is file
-#     if there is:
-#         old_multi_beta_result
-#         new long beta list
-#         for beta in new betas:
-#             if beta in old_result[betas]:
-#                 partial_result = take_partial_results_from_old_result(beta)
-#             else:
-#                 partial_result = optimize
-#             fill multi_beta_result
-#     else:
-#         all standard
+                # WRITING DATA TO FILE
+                path = "./MHETS_data/"
+                file_name = setup.setup_file_name(H, flag, shots=shots)
+                with open(path + file_name, "wb") as f:
+                    # Pickle the preparation_result dictionary using the highest protocol available.
+                    pickle.dump(multi_beta_result, f, pickle.HIGHEST_PROTOCOL)
+                if run_flag is True:
+                    for run_index in range(len(multi_beta_runs)):
+                        path = "./MHETS_data/"
+                        file_name = (
+                            "MHETS_{}at_gy{}_B{}_run{}".format(
+                                H.N, H.gy, H.B, run_index
+                            ).replace(".", "")
+                        ) + ".pickle"
+                        with open(path + file_name, "wb") as f:
+                            # Pickle the preparation_result dictionary using the highest protocol available.
+                            pickle.dump(multi_beta_runs[run_index], f, pickle.HIGHEST_PROTOCOL)
