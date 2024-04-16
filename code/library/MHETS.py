@@ -17,9 +17,9 @@ from scipy.optimize import minimize
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import DensityMatrix, partial_trace
 from qiskit_experiments.library import StateTomography
-from qiskit_algorithms.optimizers import SPSA
 
-from library import montecarlo
+
+from library import montecarlo, SPSA_lib
 from library.operator_creation import LMG_hamiltonian
 from library.ansatz_creation import two_local
 
@@ -68,9 +68,12 @@ class MHETS_instance:
                 + self.system_ansatz.get_num_parameters()
             )
         elif len(self.initial_parameter_list) != (
-            self.ancilla_ansatz.get_num_parameters() + self.system_ansatz.get_num_parameters()
+            self.ancilla_ansatz.get_num_parameters()
+            + self.system_ansatz.get_num_parameters()
         ):
-            print("Warning!!! Initial parameter list number not correct. Changed to [0, ..., 0]")
+            print(
+                "Warning!!! Initial parameter list number not correct. Changed to [0, ..., 0]"
+            )
             self.initial_parameter_list = np.zeros(
                 self.ancilla_ansatz.get_num_parameters()
                 + self.system_ansatz.get_num_parameters()
@@ -106,7 +109,8 @@ class MHETS_instance:
     def update_parameters(self, parameter_list: list):
         self.current_parameter_list = parameter_list
         ancilla_parameters = [
-            parameter_list[i] for i in range(0, self.ancilla_ansatz.get_num_parameters())
+            parameter_list[i]
+            for i in range(0, self.ancilla_ansatz.get_num_parameters())
         ]
         system_parameters = [
             parameter_list[i]
@@ -123,7 +127,6 @@ class MHETS_instance:
         if self.flag == "statevector":
             rho = DensityMatrix(circuit)
             return rho
-
         elif self.flag == "qasm":
             if self.backend is None:
                 print("You didn't indicate backend")
@@ -131,7 +134,6 @@ class MHETS_instance:
             data = experiment.run(self.backend, shots=shots).block_for_results()
 
             return data
-
         elif self.flag == "noise":
             if self.backend is None:
                 print("You didn't indicate backend")
@@ -144,11 +146,14 @@ class MHETS_instance:
         self.update_parameters(parameter_list)
 
         global callback_data
+        global counter
+
         total_qc = self.build_total_circuit()
         if self.backend is not None:
             data = self.QST(circuit=total_qc, shots=shots)
-            callback_data.append(data)
             rho = data.analysis_results("state").value
+            if counter % 10 == 0:  # Data is heavy, we have to take few
+                callback_data.append([counter, data])
         else:
             rho = self.QST(circuit=total_qc, shots=shots)
         prob_ancilla = rho.probabilities(range(0, self.N_ancilla))
@@ -170,26 +175,33 @@ class MHETS_instance:
         # print("Current F =", np.real(beta * system_exp_value - entropy))
         if self.flag == "statevector":
             callback_data.append(
-                np.real(beta * system_exp_value - entropy)
+                [counter, np.real(beta * system_exp_value - entropy)]
             )  # MemoryError for N=4, maxiter about 2-3000 If you want entire rho
+        counter += 1
         return np.real(beta * system_exp_value - entropy)
 
     def optimize(
         self,
         beta,
-        initial_parameter_list=None,
+        initial_parameter_list_guess=None,
         optimizer="SLSQP",
         maxiter=1000,
         tol=1e-1,
         shots=1024,
     ):
+        global counter
         global callback_data
         callback_data = []
+        counter = 0
         total_start = time.time()
-        if initial_parameter_list is None:
-            if optimizer == "SPSA":
-                spsa = SPSA(maxiter=maxiter)
-                scipy_result = spsa.minimize(self.cost_function, self.initial_parameter_list)
+        if initial_parameter_list_guess is None:
+            if optimizer == "spsa":
+                scipy_result = SPSA_lib.spsa_optimization(
+                    cost=self.cost_function,
+                    parameters=self.initial_parameter_list,
+                    args=(beta, shots),
+                    maxiter=maxiter,
+                )
             else:
                 scipy_result = minimize(
                     self.cost_function,
@@ -200,13 +212,17 @@ class MHETS_instance:
                     tol=tol,
                 )
         else:
-            if optimizer == "SPSA":
-                spsa = SPSA(maxiter=maxiter)
-                scipy_result = spsa.minimize(self.cost_function, initial_parameter_list)
+            if optimizer == "spsa":
+                scipy_result = SPSA_lib.spsa_optimization(
+                    cost=self.cost_function,
+                    parameters=initial_parameter_list_guess,
+                    args=(beta, shots),
+                    maxiter=maxiter,
+                )
             else:
                 scipy_result = minimize(
                     self.cost_function,
-                    initial_parameter_list,
+                    initial_parameter_list_guess,
                     args=(beta, shots),
                     method=optimizer,
                     options={"maxiter": maxiter},
@@ -217,8 +233,6 @@ class MHETS_instance:
         result = {
             "optimized_parameter_list": scipy_result.x,
             "Helmoltz energy": scipy_result.fun,
-            "success": scipy_result.success,
-            "Message": scipy_result.message,
             "Time optimization": time.time() - total_start,
             "n_eval": scipy_result.nfev,
             "callback_data": callback_data,
@@ -229,7 +243,9 @@ class MHETS_instance:
         # INITIALIZE THE DICTIONARY RESULT
         result = self.optimize(
             beta=betas[0],
-            initial_parameter_list=self.optimization_options["initial_parameter_list"][0],
+            initial_parameter_list_guess=self.optimization_options[
+                "initial_parameter_list"
+            ][0],
             maxiter=self.optimization_options["maxiter"],
             optimizer=self.optimization_options["optimizer"],
             tol=self.optimization_options["tol"],
@@ -244,16 +260,17 @@ class MHETS_instance:
             multi_beta_result[key] = [result[key]]
         # CONTINUE FILLING IT
         for index in range(1, len(betas)):
-            print(
-                "Initial_parameter_list for beta = {}".format(betas[index]),
-                multi_beta_result["optimized_parameter_list"][index - 1],
-            )
+            # HERE TO CHANGE INITIAL PARAMETER GUESS WITH PREVIOUS OPTIMIZED PARAMETERS
             result = self.optimize(
                 beta=betas[index],
-                # initial_parameter_list=self.optimization_options["initial_parameter_list"][
-                #     index
-                # ],
-                initial_parameter_list=multi_beta_result["optimized_parameter_list"][index - 1],
+                # initial_parameter_list_guess=self.optimization_options[
+                #     "initial_parameter_list"
+                # ][index], # -> THIS IS STRATEGY A0
+                initial_parameter_list_guess=multi_beta_result[
+                    "optimized_parameter_list"
+                ][
+                    index - 1
+                ],  # THIS IS STRATEGY A1
                 maxiter=self.optimization_options["maxiter"],
                 optimizer=self.optimization_options["optimizer"],
                 tol=self.optimization_options["tol"],
@@ -275,31 +292,37 @@ class MHETS_instance:
                 if key != "backend":
                     multi_beta_result[key] = []
         # FILLING DICTIONARY RESULT
-        for beta in betas:
-            if beta in old_data["betas"]:
-                beta_index = old_data["betas"].index(beta)
+        for new_beta_index in range(len(betas)):
+            if betas[new_beta_index] in old_data["betas"]:
+                old_beta_index = old_data["betas"].index(betas[new_beta_index])
                 for key in old_data.keys():
                     if key != "optimization_options":
                         if key != "backend":
-                            multi_beta_result[key].append(old_data[key][beta_index])
+                            multi_beta_result[key].append(old_data[key][old_beta_index])
             else:
                 # TODO: check initial parameters when flag=hardware, not implemented
                 result = self.optimize(
-                    beta=beta,
+                    beta=betas[new_beta_index],
+                    # initial_parameter_list_guess=self.optimization_options[
+                    #     "initial_parameter_list"
+                    # ][new_beta_index], # -> THIS IS STRATEGY A0
+                    initial_parameter_list_guess=multi_beta_result[
+                        "optimized_parameter_list"
+                    ][
+                        new_beta_index - 1
+                    ],  # THIS IS STRATEGY A1
                     maxiter=self.optimization_options["maxiter"],
                     optimizer=self.optimization_options["optimizer"],
                     tol=self.optimization_options["tol"],
                     shots=self.optimization_options["shots"],
                 )
-                multi_beta_result["betas"].append(beta)
+                multi_beta_result["betas"].append(betas[new_beta_index])
                 for key in result.keys():
                     multi_beta_result[key].append(result[key])
         return multi_beta_result
 
     def multi_beta_optimization_run(
-        self,
-        betas,
-        n_starting_point=10,
+        self, betas, n_starting_point=10,
     ):
         # INITIALIZE THE DICTIONARY RESULT
         minimized_result, total_result = montecarlo.run(

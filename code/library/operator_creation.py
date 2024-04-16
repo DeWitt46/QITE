@@ -120,3 +120,17 @@ class LMG_hamiltonian:
                 eigenstates[index] @ np.matrix.getH(eigenstates[index])
             )
         return op_sqrt
+
+    def relative_entropy(self, first, second):
+        """
+            S(first||second) = sum_i p_first_i log(p_first_i/p_second_i)
+        """
+        S = 0.0
+
+        for i in range(2 ** self.N):
+            p_first_i = first[i][i]
+            p_second_i = second[i][i]
+            if p_second_i != 0.0:
+                if p_first_i != 0:
+                    S += p_first_i * (np.log(p_first_i) - np.log(p_second_i))
+        return S
