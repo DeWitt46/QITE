@@ -10,7 +10,7 @@ Created on Wed Jan 10 18:44:16 2024
 """
 import numpy as np
 import matplotlib.pyplot as plt
-
+import pickle
 
 # from library import state_label as lb
 # from library import result_handler
@@ -22,7 +22,7 @@ from library.QMETTS import QMETTS_instance
 
 N = 2
 gy = 0.8
-B = 0.7
+B = 0.4
 final_beta = 10.0
 num_beta_points = 10
 shots = 50
@@ -43,7 +43,13 @@ qmetts_instance = QMETTS_instance(
 )
 print(qmetts_instance.get_basis_list())
 print(qmetts_instance.get_basis_measure_list())
-# qmetts_instance.compute_evo_on_basis()
+
+try:
+    with open(qmetts_instance.file_name, "rb") as f:
+        pickle.load(f)
+except FileNotFoundError:
+    qmetts_instance.compute_evo_on_basis()  # THIS TO PREPARE AND COMPUTE EVOLUTIONS
+
 QMETTS_result = qmetts_instance.multi_beta_qmetts(
     op=H.get_pauli(), initial_state=initial_state, shots=shots
 )

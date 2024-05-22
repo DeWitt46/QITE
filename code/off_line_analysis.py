@@ -16,17 +16,17 @@ from library import plotting, setup
 from library.operator_creation import LMG_hamiltonian
 from library.MHETS import MHETS_instance
 
-flag = "noise"
+flag = "statevector"
 backend = None  # Only for graphic purpose
-N = 3
-gy = 0.49
-B = 0.2
+N = 4
+gy = 0.25
+B = 0.1
 H = LMG_hamiltonian(N, gy, B)
 
 
 path = "./MHETS_data/"
 file_name = setup.setup_file_name(H, flag, shots=100, pma_flag=True)
-file_name = file_name.replace(".pickle", "_cobyla.pickle")
+# file_name = file_name.replace(".pickle", "_cobyla.pickle")
 # IF run_flag WAS TRUE AND YOU WANT TO LOOK AT A SINGLE RUN
 # run_index = 3
 # file_name = (
@@ -54,9 +54,7 @@ for index in range(len(beta_list)):
     mhets.update_parameters(multi_beta_result["optimized_parameter_list"][index])
     rho = mhets.QST(mhets.build_total_circuit(), shots=optimization_options["shots"])
     rho_s_list.append(partial_trace(rho, range(ancilla_ansatz.get_num_qubits())))
-plotting.plot_MHETS_thermal_average(
-    beta_list, rho_s_list, H, backend=backend, beta_final=10
-)
+plotting.plot_MHETS_thermal_average(beta_list, rho_s_list, H, backend=backend, beta_final=10)
 plotting.plot_fidelity(beta_list, rho_s_list, H, backend=backend)
 plotting.plot_rel_entropy(beta_list, rho_s_list, H, backend=backend)
 plotting.plot_parity(beta_list, rho_s_list, H, backend=backend)
@@ -66,7 +64,8 @@ plotting.plot_parity(beta_list, rho_s_list, H, backend=backend)
 print(multi_beta_result["n_eval"])
 print(multi_beta_result["Time optimization"])
 print(multi_beta_result["optimization_options"])
-
+print("")
+# print(multi_beta_result["optimized_parameter_list"])
 
 # FOR NOISE SIMULATIONS
 # for data in multi_beta_result["callback_data"][0]:
