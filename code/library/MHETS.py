@@ -68,12 +68,9 @@ class MHETS_instance:
                 + self.system_ansatz.get_num_parameters()
             )
         elif len(self.initial_parameter_list) != (
-            self.ancilla_ansatz.get_num_parameters()
-            + self.system_ansatz.get_num_parameters()
+            self.ancilla_ansatz.get_num_parameters() + self.system_ansatz.get_num_parameters()
         ):
-            print(
-                "Warning!!! Initial parameter list number not correct. Changed to [0, ..., 0]"
-            )
+            print("Warning!!! Initial parameter list number not correct. Changed to [0, ..., 0]")
             self.initial_parameter_list = np.zeros(
                 self.ancilla_ansatz.get_num_parameters()
                 + self.system_ansatz.get_num_parameters()
@@ -109,8 +106,7 @@ class MHETS_instance:
     def update_parameters(self, parameter_list: list):
         self.current_parameter_list = parameter_list
         ancilla_parameters = [
-            parameter_list[i]
-            for i in range(0, self.ancilla_ansatz.get_num_parameters())
+            parameter_list[i] for i in range(0, self.ancilla_ansatz.get_num_parameters())
         ]
         system_parameters = [
             parameter_list[i]
@@ -243,9 +239,7 @@ class MHETS_instance:
         # INITIALIZE THE DICTIONARY RESULT
         result = self.optimize(
             beta=betas[0],
-            initial_parameter_list_guess=self.optimization_options[
-                "initial_parameter_list"
-            ][0],
+            initial_parameter_list_guess=self.optimization_options["initial_parameter_list"][0],
             maxiter=self.optimization_options["maxiter"],
             optimizer=self.optimization_options["optimizer"],
             tol=self.optimization_options["tol"],
@@ -263,14 +257,14 @@ class MHETS_instance:
             # HERE TO CHANGE INITIAL PARAMETER GUESS WITH PREVIOUS OPTIMIZED PARAMETERS
             result = self.optimize(
                 beta=betas[index],
-                # initial_parameter_list_guess=self.optimization_options[
-                #     "initial_parameter_list"
-                # ][index], # -> THIS IS STRATEGY A0
-                initial_parameter_list_guess=multi_beta_result[
-                    "optimized_parameter_list"
-                ][
-                    index - 1
-                ],  # THIS IS STRATEGY A1
+                initial_parameter_list_guess=self.optimization_options["initial_parameter_list"][
+                    index
+                ],  # -> THIS IS STRATEGY A0
+                # initial_parameter_list_guess=multi_beta_result[
+                #     "optimized_parameter_list"
+                # ][
+                #     index - 1
+                # ],  # THIS IS STRATEGY A1
                 maxiter=self.optimization_options["maxiter"],
                 optimizer=self.optimization_options["optimizer"],
                 tol=self.optimization_options["tol"],
@@ -306,9 +300,7 @@ class MHETS_instance:
                     # initial_parameter_list_guess=self.optimization_options[
                     #     "initial_parameter_list"
                     # ][new_beta_index], # -> THIS IS STRATEGY A0
-                    initial_parameter_list_guess=multi_beta_result[
-                        "optimized_parameter_list"
-                    ][
+                    initial_parameter_list_guess=multi_beta_result["optimized_parameter_list"][
                         new_beta_index - 1
                     ],  # THIS IS STRATEGY A1
                     maxiter=self.optimization_options["maxiter"],
@@ -322,7 +314,9 @@ class MHETS_instance:
         return multi_beta_result
 
     def multi_beta_optimization_run(
-        self, betas, n_starting_point=10,
+        self,
+        betas,
+        n_starting_point=10,
     ):
         # INITIALIZE THE DICTIONARY RESULT
         minimized_result, total_result = montecarlo.run(

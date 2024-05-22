@@ -68,9 +68,7 @@ def setup_ansatz(N, optimization_options):
         ancilla_ansatz = two_local(
             num_qubits=N,
             rotation_blocks=optimization_options["ancilla_ansatz_rotation_blocks"],
-            entanglement_blocks=optimization_options[
-                "ancilla_ansatz_entanglement_blocks"
-            ],
+            entanglement_blocks=optimization_options["ancilla_ansatz_entanglement_blocks"],
             entanglement=optimization_options["ancilla_ansatz_entanglement"],
             num_reps=optimization_options["ancilla_num_reps"],
             par_name="x",
@@ -86,9 +84,7 @@ def setup_ansatz(N, optimization_options):
         system_ansatz = two_local(
             num_qubits=N,
             rotation_blocks=optimization_options["system_ansatz_rotation_blocks"],
-            entanglement_blocks=optimization_options[
-                "system_ansatz_entanglement_blocks"
-            ],
+            entanglement_blocks=optimization_options["system_ansatz_entanglement_blocks"],
             entanglement=optimization_options["system_ansatz_entanglement"],
             num_reps=optimization_options["system_num_reps"],
             par_name="y",
@@ -120,14 +116,20 @@ def setup_backend(flag="statevector", model_tag=None):
 
 
 def setup_initial_parameter_list(
-    H, flag="statevector", num_beta_points=4, path="./MHETS_data/"
+    H,
+    flag="statevector",
+    pma_flag=True,
+    num_beta_points=4,
+    path="./MHETS_data/",
+    take_statevector_initial_parameters=False,
 ):
-    if flag == "hardware":
+    if take_statevector_initial_parameters is True:
         # Takes optimized parameters from statevector simulation
-        file_name = setup_file_name(H, flag="statevector")
+        file_name = setup_file_name(H, flag="statevector", pma_flag=pma_flag)
         with open(path + file_name, "rb") as f:
             multi_beta_result_sv = pickle.load(f)
         initial_parameter_list = multi_beta_result_sv["optimized_parameter_list"]
+        print("I AM TAKING INITIAL PARAMETER LIST FROM STATEVECTOR RESULTS")
     else:
         initial_parameter_list = [None for i in range(num_beta_points)]
     return initial_parameter_list
@@ -155,26 +157,20 @@ def setup_betas(old_betas, betas):
 
 def setup_file_name(H, flag="statevector", shots=1024, pma_flag=False):
     if flag == "statevector":
-        file_name = (
-            "MHETS_{}at_gy{}_B{}".format(H.N, H.gy, H.B).replace(".", "")
-        ) + ".pickle"
+        file_name = ("MHETS_{}at_gy{}_B{}".format(H.N, H.gy, H.B).replace(".", "")) + ".pickle"
     elif flag == "qasm":
         file_name = (
             "MHETS_{}at_gy{}_B{}_{}shots".format(H.N, H.gy, H.B, shots).replace(".", "")
         ) + ".pickle"
     elif flag == "noise":
         file_name = (
-            "MHETS_{}at_gy{}_B{}_{}shots_noise".format(H.N, H.gy, H.B, shots).replace(
-                ".", ""
-            )
+            "MHETS_{}at_gy{}_B{}_{}shots_noise".format(H.N, H.gy, H.B, shots).replace(".", "")
         ) + ".pickle"
     elif flag == "hardware":
         file_name = (
-            "MHETS_{}at_gy{}_B{}_{}shots_hardware".format(
-                H.N, H.gy, H.B, shots
-            ).replace(".", "")
+            "MHETS_{}at_gy{}_B{}_{}shots_hardware".format(H.N, H.gy, H.B, shots).replace(".", "")
         ) + ".pickle"
-    if pma_flag == True:
+    if pma_flag is True:
         file_name = file_name.replace(".pickle", "_pma.pickle")
     return file_name
 
@@ -211,8 +207,6 @@ def data_to_rho_s(data, H):
     beta_list = data["betas"]
     for index in range(len(beta_list)):
         mhets.update_parameters(data["optimized_parameter_list"][index])
-        rho = mhets.QST(
-            mhets.build_total_circuit(), shots=data["optimization_options"]["shots"]
-        )
+        rho = mhets.QST(mhets.build_total_circuit(), shots=data["optimization_options"]["shots"])
         rho_s_list.append(partial_trace(rho, range(ancilla_ansatz.get_num_qubits())))
     return rho_s_list

@@ -21,9 +21,7 @@ import matplotlib.pyplot as plt
 from library.operator_creation import LMG_hamiltonian
 
 
-def plot_thermal_average(
-    QMETTS_result, numerical_final_beta=7.0, numerical_beta_points=100
-):
+def plot_thermal_average(QMETTS_result, numerical_final_beta=7.0, numerical_beta_points=100):
     r"""Plots the energy thermal averages contained in QMETTS_result compared with the numerical ones and the ground state energy.
 
     Args:
@@ -43,9 +41,7 @@ def plot_thermal_average(
     num_th_averages = []
     for beta in betas:
         ground_state_energy.append(H.get_ground_state()[0])
-        num_th_averages.append(
-            LMG_hamiltonian.thermal_average(H, op=H.get_matrix(), beta=beta)
-        )
+        num_th_averages.append(LMG_hamiltonian.thermal_average(H, op=H.get_matrix(), beta=beta))
     plt.rcParams["figure.figsize"] = [7.50, 5.50]
     plt.rcParams["figure.autolayout"] = True
 
@@ -62,7 +58,10 @@ def plot_thermal_average(
     )
     plt.plot(betas, num_th_averages, color="blue", label="numerical average")
     plt.scatter(
-        np.array(beta_list), thermal_averages, color="red", label="QMETTS average",
+        np.array(beta_list),
+        thermal_averages,
+        color="red",
+        label="QMETTS average",
     )
 
     plt.ylabel("Thermal averages")
@@ -203,9 +202,7 @@ def plot_qite(QMETTS_result, state_label_list=None):
 
     gylabel = "$\gamma$ = {gy:.1f}, B = {B:.1f}"
 
-    plt.title(
-        "QITE and numerical ground state overlap for N = {N:.0f} spins".format(N=N)
-    )
+    plt.title("QITE and numerical ground state overlap for N = {N:.0f} spins".format(N=N))
 
     plt.plot(
         taus,
@@ -220,9 +217,7 @@ def plot_qite(QMETTS_result, state_label_list=None):
         overlap = []
         for tau_index in range(len(taus)):
             overlap.append(
-                np.absolute(
-                    evolved_state_dict[state_label][tau_index].inner(exact_ground_state)
-                )
+                np.absolute(evolved_state_dict[state_label][tau_index].inner(exact_ground_state))
             )
         plt.plot(
             taus,
@@ -239,7 +234,7 @@ def plot_qite(QMETTS_result, state_label_list=None):
     # Line of codes to avoid repeating labels in legend
     handles, labels = plt.gca().get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    plt.legend(by_label.values(), by_label.keys(), loc="lower right")
+    plt.legend(by_label.values(), by_label.keys(), loc="center right")
 
     plt.grid()
     plt.show()
@@ -252,19 +247,13 @@ def plot_fidelity(beta_list, rho_s_list, H, backend=None):
     plt.rcParams["figure.figsize"] = [7.50, 5.50]
     plt.rcParams["figure.autolayout"] = True
 
-    plt.title(
-        "Fidelity of MHETS and numerical thermal state for N = {N:.0f} spins".format(
-            N=N
-        )
-    )
+    plt.title("Fidelity of MHETS and numerical thermal state for N = {N:.0f} spins".format(N=N))
     plt.ylabel("Fidelity")
     plt.xlabel("beta")
 
     fidelity = []
     for index in range(len(beta_list)):
-        fidelity.append(
-            state_fidelity(rho_s_list[index], H.get_thermal_state(beta_list[index]))
-        )
+        fidelity.append(state_fidelity(rho_s_list[index], H.get_thermal_state(beta_list[index])))
     plt.plot(beta_list, np.ones(len(beta_list)), color="black", ls="dotted")
     if backend is None:
         gylabel = "$\gamma$ = {gy:.1f}, B = {B:.1f}"
@@ -359,9 +348,7 @@ def plot_parity(
     plt.rcParams["figure.figsize"] = [7.50, 5.50]
     plt.rcParams["figure.autolayout"] = True
 
-    plt.title(
-        "Parity of MHETS over numerical thermal state for N = {N:.0f} spins".format(N=N)
-    )
+    plt.title("Parity of MHETS over numerical thermal state for N = {N:.0f} spins".format(N=N))
     plt.ylabel("Tr[P rho]")
     plt.xlabel("beta")
 
@@ -373,7 +360,11 @@ def plot_parity(
     for index in range(len(beta_list)):
         MHETS_parity.append(rho_s_list[index].expectation_value(P.to_operator()))
     plt.plot(
-        num_beta, num_parity, color="red", ls="dotted", label="Numerical",
+        num_beta,
+        num_parity,
+        color="red",
+        ls="dotted",
+        label="Numerical",
     )
     if backend is None:
         gylabel = "MHETS - $\gamma$ = {gy:.1f}, B = {B:.1f}"
@@ -385,9 +376,7 @@ def plot_parity(
             label=gylabel.format(gy=gy, B=B),
         )
     else:
-        gylabel = (
-            "MHETS - $\gamma$ = {gy:.1f}, B = {B:.1f} - MHETS on {backend} backend"
-        )
+        gylabel = "MHETS - $\gamma$ = {gy:.1f}, B = {B:.1f} - MHETS on {backend} backend"
         plt.scatter(
             beta_list,
             MHETS_parity,
@@ -419,9 +408,7 @@ def plot_MHETS_thermal_average(
     num_th_averages = []
     for beta in betas:
         ground_state_energy.append(H.get_ground_state()[0])
-        num_th_averages.append(
-            LMG_hamiltonian.thermal_average(H, op=H.get_matrix(), beta=beta)
-        )
+        num_th_averages.append(LMG_hamiltonian.thermal_average(H, op=H.get_matrix(), beta=beta))
     plt.rcParams["figure.figsize"] = [7.50, 5.50]
     plt.rcParams["figure.autolayout"] = True
 
@@ -439,7 +426,10 @@ def plot_MHETS_thermal_average(
     plt.plot(betas, num_th_averages, color="blue", label="numerical average")
     if backend is None:
         plt.scatter(
-            np.array(beta_list), thermal_averages, color="red", label="MHETS average",
+            np.array(beta_list),
+            thermal_averages,
+            color="red",
+            label="MHETS average",
         )
     else:
         plt.scatter(
@@ -497,9 +487,7 @@ def plot_MHETS_shots(multi_data, betas, H):
                 range(1, n_iterations),
                 take_helm_energy(multi_data[index], beta, H),
                 color=color_list[index],
-                label=gylabel.format(
-                    multi_data[index]["optimization_options"]["shots"]
-                ),
+                label=gylabel.format(multi_data[index]["optimization_options"]["shots"]),
             )
     for ax in axs.flat:
         ax.set(xlabel="N evaluation", ylabel="Helmoltz energy")
@@ -540,9 +528,7 @@ def plot_MHETS_shots_fidelity(multi_data, betas, H):
                 range(1, multi_data[index]["n_eval"][beta_index] + 1),
                 take_QST_fidelity(multi_data[index], beta, H),
                 color=color_list[index],
-                label=gylabel.format(
-                    multi_data[index]["optimization_options"]["shots"]
-                ),
+                label=gylabel.format(multi_data[index]["optimization_options"]["shots"]),
             )
     for ax in axs.flat:
         ax.set(xlabel="N evaluation", ylabel="QST Fidelity")
